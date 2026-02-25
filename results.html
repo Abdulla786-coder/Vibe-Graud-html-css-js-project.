@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Scan Results – VibeGuard</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>" />
+</head>
+
+<body>
+    <div class="bg-mesh"></div>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="index.html" class="nav-logo">
+            <div class="logo-icon">🛡️</div>
+            <span class="logo-text">Vibe<span>Guard</span></span>
+        </a>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="scan.html">Scanner</a>
+            <a href="history.html">History</a>
+        </div>
+        <a href="scan.html" class="nav-cta">⚡ New Scan</a>
+    </nav>
+
+    <div class="page-wrapper">
+        <div class="results-layout">
+
+            <!-- Header -->
+            <div class="results-header fade-in-up">
+                <a href="scan.html" class="results-back">← Back to Scanner</a>
+                <h1>Audit Report</h1>
+                <p id="results-meta">Scan completed — awaiting data…</p>
+            </div>
+
+            <!-- Grid -->
+            <div class="results-grid fade-in-up delay-1">
+
+                <!-- Left: Score Card -->
+                <div>
+                    <div class="score-card">
+                        <h3
+                            style="font-size:0.9rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:1.25rem;">
+                            Quality Score</h3>
+                        <div class="score-gauge-wrap">
+                            <svg class="score-svg" viewBox="0 0 120 120" id="score-svg">
+                                <circle class="score-bg" cx="60" cy="60" r="50" />
+                                <circle class="score-fill" cx="60" cy="60" r="50" id="score-arc" stroke-dasharray="314"
+                                    stroke-dashoffset="314" />
+                            </svg>
+                            <div class="score-center">
+                                <div class="score-num" id="score-num">–</div>
+                                <div class="score-label">/ 100</div>
+                            </div>
+                        </div>
+                        <div class="score-grade" id="score-grade"></div>
+
+                        <div class="score-breakdown">
+                            <div class="breakdown-row">
+                                <span class="breakdown-label"><span class="breakdown-dot dot-critical"></span>
+                                    Critical</span>
+                                <span class="breakdown-count sev-critical" id="cnt-critical">0</span>
+                            </div>
+                            <div class="breakdown-row">
+                                <span class="breakdown-label"><span class="breakdown-dot dot-high"></span> High</span>
+                                <span class="breakdown-count sev-high" id="cnt-high">0</span>
+                            </div>
+                            <div class="breakdown-row">
+                                <span class="breakdown-label"><span class="breakdown-dot dot-medium"></span>
+                                    Medium</span>
+                                <span class="breakdown-count sev-medium" id="cnt-medium">0</span>
+                            </div>
+                            <div class="breakdown-row">
+                                <span class="breakdown-label"><span class="breakdown-dot dot-low"></span> Low</span>
+                                <span class="breakdown-count sev-low" id="cnt-low">0</span>
+                            </div>
+                            <div class="breakdown-row">
+                                <span class="breakdown-label"><span class="breakdown-dot dot-info"></span> Info</span>
+                                <span class="breakdown-count sev-info" id="cnt-info">0</span>
+                            </div>
+                        </div>
+
+                        <!-- Scan meta -->
+                        <div
+                            style="margin-top:1.5rem;border-top:1px solid var(--glass-border);padding-top:1.25rem;font-size:0.8rem;display:flex;flex-direction:column;gap:0.5rem;color:var(--text-muted);">
+                            <div style="display:flex;justify-content:space-between;"><span>Language</span><span
+                                    id="meta-lang" style="color:var(--text-primary);">–</span></div>
+                            <div style="display:flex;justify-content:space-between;"><span>Lines Scanned</span><span
+                                    id="meta-lines" style="color:var(--text-primary);">–</span></div>
+                            <div style="display:flex;justify-content:space-between;"><span>AI Audit</span><span
+                                    id="meta-ai" style="color:var(--text-primary);">–</span></div>
+                            <div style="display:flex;justify-content:space-between;"><span>Scanned At</span><span
+                                    id="meta-time" style="color:var(--text-primary);">–</span></div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div style="margin-top:1.25rem;display:flex;flex-direction:column;gap:0.6rem;">
+                            <a href="scan.html" class="btn-primary"
+                                style="justify-content:center;font-size:0.9rem;padding:0.75rem 1rem;">⚡ New Scan</a>
+                            <button class="btn-secondary" id="copy-report-btn"
+                                style="font-size:0.875rem;padding:0.6rem 1rem;">📋 Copy Report</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Findings + Roadmap -->
+                <div class="findings-panel">
+
+                    <!-- Vulnerabilities -->
+                    <div class="panel-card">
+                        <div class="panel-title">🐛 Findings <span
+                                style="color:var(--text-muted);font-weight:400;font-size:0.85rem;"
+                                id="findings-count-label"></span></div>
+                        <div class="panel-body">
+                            <div id="findings-container"></div>
+                        </div>
+                    </div>
+
+                    <!-- Roadmap -->
+                    <div class="panel-card">
+                        <div class="panel-title">🗺️ Refactoring Roadmap</div>
+                        <div class="panel-body">
+                            <div class="roadmap-content" id="roadmap-container"></div>
+                        </div>
+                        <div class="export-row">
+                            <button class="export-btn" id="copy-roadmap-btn">📋 Copy Roadmap</button>
+                            <button class="export-btn" id="print-btn">🖨️ Print / Save PDF</button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/results.js"></script>
+</body>
+
+</html>

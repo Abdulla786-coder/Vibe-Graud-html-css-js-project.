@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Scan History – VibeGuard</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>" />
+</head>
+
+<body>
+    <div class="bg-mesh"></div>
+
+    <nav class="navbar">
+        <a href="index.html" class="nav-logo">
+            <div class="logo-icon">🛡️</div>
+            <span class="logo-text">Vibe<span>Guard</span></span>
+        </a>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="scan.html">Scanner</a>
+            <a href="history.html" class="active">History</a>
+        </div>
+        <a href="scan.html" class="nav-cta">⚡ New Scan</a>
+    </nav>
+
+    <div class="page-wrapper">
+        <div class="history-layout">
+            <div class="history-tools-row fade-in-up">
+                <div>
+                    <h1>📋 Scan History</h1>
+                    <p class="sub">All your past audits, stored locally in your browser.</p>
+                </div>
+                <button class="clear-history-btn" id="clear-btn">🗑 Clear All</button>
+            </div>
+
+            <div class="history-table-wrap fade-in-up delay-1" id="history-wrap">
+                <div class="history-empty" id="history-empty" style="display:none;">
+                    <div class="empty-icon">📭</div>
+                    <p style="font-size:1rem;font-weight:600;color:var(--text-secondary);">No scans yet</p>
+                    <p style="font-size:0.875rem;margin-top:0.4rem;">Run your first scan to see history here.</p>
+                    <a href="scan.html" style="display:inline-block;margin-top:1.25rem;" class="btn-primary">⚡ Start
+                        Scanning</a>
+                </div>
+                <table class="history-table" id="history-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Date &amp; Time</th>
+                            <th>Language</th>
+                            <th>Score</th>
+                            <th>Issues</th>
+                            <th>Critical</th>
+                            <th>High</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function getHistory() {
+            try { return JSON.parse(localStorage.getItem('vg_history') || '[]'); } catch { return []; }
+        }
+
+        function scoreColor(s) {
+            if (s >= 75) return '#10b981';
+            if (s >= 50) return '#f59e0b';
+            if (s >= 25) return '#f97316';
+            return '#ef4444';
+        }
+
+        function render() {
+            const history = getHistory();
+            const tbody = document.getElementById('history-tbody');
+            const empty = document.getElementById('history-empty');
+            const table = document.getElementById('history-table');
+
+            if (!history.length) {
+                table.style.display = 'none';
+                empty.style.display = 'block';
+                return;
+            }
+            table.style.display = '';
+            empty.style.display = 'none';
+
+            tbody.innerHTML = history.slice().reverse().map((scan, i) => {
+                const d = new Date(scan.timestamp);
+                const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                const critical = scan.findings?.filter(f => f.severity === 'Critical').length || 0;
+                const high = scan.findings?.filter(f => f.severity === 'High').length || 0;
+                const col = scoreColor(scan.score);
+                return `<tr onclick="viewScan(${history.length - 1 - i})">
+        <td style="color:var(--text-muted)">${history.length - i}</td>
+        <td>${dateStr}<br><span style="color:var(--text-muted);font-size:0.78rem">${timeStr}</span></td>
+        <td><span class="lang-badge">${scan.language || '–'}</span></td>
+        <td><span style="color:${col};font-weight:800;font-size:1rem">${scan.score}</span></td>
+        <td style="color:var(--text-secondary)">${scan.findings?.length || 0}</td>
+        <td><span class="breakdown-count sev-critical">${critical}</span></td>
+        <td><span class="breakdown-count sev-high">${high}</span></td>
+        <td><button class="export-btn" onclick="event.stopPropagation();viewScan(${history.length - 1 - i})">View →</button></td>
+      </tr>`;
+            }).join('');
+        }
+
+        function viewScan(idx) {
+            localStorage.setItem('vg_active_result', JSON.stringify(getHistory()[idx]));
+            window.location.href = 'results.html';
+        }
+
+        document.getElementById('clear-btn').addEventListener('click', () => {
+            if (confirm('Clear all scan history? This cannot be undone.')) {
+                localStorage.removeItem('vg_history');
+                render();
+            }
+        });
+
+        render();
+    </script>
+</body>
+
+</html>

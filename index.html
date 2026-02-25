@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VibeGuard – AI Code Security Auditor</title>
+  <meta name="description" content="VibeGuard scans AI-generated code for security vulnerabilities and logic hallucinations, giving you a Quality Score and a Refactoring Roadmap." />
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>" />
+</head>
+<body>
+
+<!-- Background -->
+<div class="bg-mesh"></div>
+<div class="particles" id="particles"></div>
+
+<!-- Navbar -->
+<nav class="navbar">
+  <a href="index.html" class="nav-logo">
+    <div class="logo-icon">🛡️</div>
+    <span class="logo-text">Vibe<span>Guard</span></span>
+  </a>
+  <div class="nav-links">
+    <a href="index.html" class="active">Home</a>
+    <a href="scan.html">Scanner</a>
+    <a href="history.html">History</a>
+    <a href="#features">Features</a>
+    <a href="#how-it-works">How It Works</a>
+  </div>
+  <a href="scan.html" class="nav-cta">Start Scanning →</a>
+</nav>
+
+<!-- Page -->
+<div class="page-wrapper">
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-badge"><span class="dot"></span> AI-Powered Security Auditing</div>
+    <h1 class="hero-title">
+      Stop Shipping<br>
+      <span class="gradient-text">Vulnerable Code.</span>
+    </h1>
+    <p class="hero-subtitle">
+      VibeGuard audits your AI-generated code for security flaws, logic hallucinations, and OWASP Top 10 vulnerabilities — then hands you a step-by-step fix roadmap.
+    </p>
+    <div class="hero-actions">
+      <a href="scan.html" class="btn-primary">⚡ Analyze My Code</a>
+      <a href="#how-it-works" class="btn-secondary">See How It Works</a>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-item">
+        <div class="stat-value" data-count="14">0</div>
+        <div class="stat-label">Vulnerability Rules</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" data-count="10">0</div>
+        <div class="stat-label">OWASP Top 10 Checks</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" data-suffix="%">100</div>
+        <div class="stat-label">Free to Use</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" data-suffix="s">&lt;3</div>
+        <div class="stat-label">Scan Time</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="section" id="features">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-tag">Core Capabilities</div>
+        <h2 class="section-title">Everything You Need to <span class="hl">Ship Safely</span></h2>
+        <p class="section-subtitle">Four powerful engines working together to secure your vibe-coded projects.</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card" style="--card-accent:#ef4444; --icon-bg:rgba(239,68,68,0.1)">
+          <div class="feature-icon">🔍</div>
+          <h3 class="feature-title">Static Analysis (SAST)</h3>
+          <p class="feature-desc">Pattern-based scanning for hardcoded credentials, SQL injection, XSS vectors, insecure functions, and 10+ more rules across JS, TS, and Python.</p>
+        </div>
+        <div class="feature-card" style="--card-accent:#7c3aed; --icon-bg:rgba(124,58,237,0.1)">
+          <div class="feature-icon">🤖</div>
+          <h3 class="feature-title">LLM Logic Audit</h3>
+          <p class="feature-desc">GPT-4o analyzes your code for hallucinated library calls, infinite loops, race conditions, and logical tautologies that static tools miss entirely.</p>
+        </div>
+        <div class="feature-card" style="--card-accent:#00e5ff; --icon-bg:rgba(0,229,255,0.08)">
+          <div class="feature-icon">📊</div>
+          <h3 class="feature-title">Quality Score</h3>
+          <p class="feature-desc">A weighted 0–100 score quantifies your security posture. Critical issues deduct 25 pts, High 15, Medium 8, Low 3 — letting you track improvement over time.</p>
+        </div>
+        <div class="feature-card" style="--card-accent:#10b981; --icon-bg:rgba(16,185,129,0.1)">
+          <div class="feature-icon">🗺️</div>
+          <h3 class="feature-title">Refactoring Roadmap</h3>
+          <p class="feature-desc">A prioritized, educational fix plan that explains <em>why</em> each issue matters and shows before/after code snippets to guide your remediation.</p>
+        </div>
+        <div class="feature-card" style="--card-accent:#f59e0b; --icon-bg:rgba(245,158,11,0.1)">
+          <div class="feature-icon">📁</div>
+          <h3 class="feature-title">File Upload Support</h3>
+          <p class="feature-desc">Upload .js, .ts, .jsx, .tsx, or .py files directly. The editor auto-detects the language and populates instantly.</p>
+        </div>
+        <div class="feature-card" style="--card-accent:#ec4899; --icon-bg:rgba(236,72,153,0.1)">
+          <div class="feature-icon">🕑</div>
+          <h3 class="feature-title">Scan History</h3>
+          <p class="feature-desc">Every scan is automatically saved to local storage. Revisit, compare, and track your security improvements across sessions.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works -->
+  <section class="section" id="how-it-works">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-tag">Process</div>
+        <h2 class="section-title">Scan in <span class="hl">Four Steps</span></h2>
+      </div>
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <h3 class="step-title">Paste or Upload</h3>
+          <p class="step-desc">Drop your AI-generated code into the editor or upload a file. Select the language and hit Analyze.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <h3 class="step-title">SAST Engine</h3>
+          <p class="step-desc">Our regex-powered engine instantly scans for 14 vulnerability patterns mapped to OWASP Top 10 categories.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <h3 class="step-title">AI Logic Audit</h3>
+          <p class="step-desc">If you provide an OpenAI API key, GPT-4o runs a deep structural analysis for hallucinations and logic flaws.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num">4</div>
+          <h3 class="step-title">Get Your Report</h3>
+          <p class="step-desc">Receive a Quality Score, categorized findings, and a Markdown roadmap you can export and act on immediately.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Banner -->
+  <section class="section">
+    <div class="container">
+      <div style="background:linear-gradient(135deg,rgba(124,58,237,0.15),rgba(0,229,255,0.1));border:1px solid rgba(124,58,237,0.3);border-radius:var(--radius-xl);padding:3rem 2rem;text-align:center;">
+        <h2 style="font-size:2rem;font-weight:800;margin-bottom:0.75rem;">Your Code Won't Audit Itself.</h2>
+        <p style="color:var(--text-secondary);margin-bottom:2rem;font-size:1.05rem;">Paste your AI output, get your score, fix the issues. Takes under 30 seconds.</p>
+        <a href="scan.html" class="btn-primary" style="display:inline-flex;">⚡ Start Free Scan</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p>© 2026 <span>VibeGuard</span> · Built to secure the vibe-coded web</p>
+  </footer>
+</div>
+
+<script>
+  // ── Animated particle background ──
+  (function(){
+    const container = document.getElementById('particles');
+    const colors = ['#7c3aed','#00e5ff','#ec4899','#10b981'];
+    for(let i = 0; i < 25; i++){
+      const p = document.createElement('div');
+      p.className = 'particle';
+      const size = Math.random()*3+1;
+      p.style.cssText = `
+        width:${size}px;height:${size}px;
+        left:${Math.random()*100}%;
+        background:${colors[Math.floor(Math.random()*colors.length)]};
+        animation-duration:${Math.random()*20+15}s;
+        animation-delay:${Math.random()*15}s;
+      `;
+      container.appendChild(p);
+    }
+  })();
+
+  // ── Counter animation ──
+  document.querySelectorAll('[data-count]').forEach(el => {
+    const target = +el.dataset.count;
+    let cur = 0;
+    const step = Math.ceil(target / 40);
+    const timer = setInterval(()=>{
+      cur = Math.min(cur+step, target);
+      el.textContent = cur;
+      if(cur >= target) clearInterval(timer);
+    }, 40);
+  });
+</script>
+</body>
+</html>
