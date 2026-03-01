@@ -1,6 +1,8 @@
 /**
- * VibeGuard – OpenAI Logic Audit
- * Uses GPT-4o/GPT-4o-mini to detect logic hallucinations and structural issues
+ * VibeGuard – AI Logic Audit
+ * Supports both OpenAI (GPT-4o) and Anthropic Claude endpoints to detect
+ * logic hallucinations and structural issues in code. The same SYSTEM_PROMPT
+ * is reused for both providers; the request format is adapted per API.
  */
 
 const SYSTEM_PROMPT = `You are VibeGuard's AI Security Auditor, specialized in detecting logic hallucinations and structural issues in AI-generated code.
@@ -40,8 +42,18 @@ Do NOT include any text outside the JSON array. Do NOT use markdown code blocks.
  * @param {string} apiKey - OpenAI API key
  * @returns {Promise<Array>} Array of findings
  */
+// determine provider by key prefix
+function isOpenAIKey(key) {
+  return key && key.startsWith('sk-');
+}
+
+function isClaudeKey(key) {
+  return key && key.toLowerCase().startsWith('claude-');
+}
+
 async function runOpenAIAudit(code, language, apiKey) {
-  if (!apiKey || !apiKey.startsWith('sk-')) {
+  // key already validated by caller; guard against misuse
+  if (!isOpenAIKey(apiKey)) {
     return [];
   }
 
@@ -93,4 +105,124 @@ async function runOpenAIAudit(code, language, apiKey) {
     console.warn('OpenAI audit failed:', err.message);
     return [];
   }
+}
+
+// ── Claude audit (Anthropic) ──
+async function runClaudeAudit(code, language, apiKey) {
+  if (!isClaudeKey(apiKey)) {
+    return [];
+  }
+
+  const truncatedCode =
+    code.length > 8000 ? code.substring(0, 8000) + '\n// ... (truncated)' : code;
+
+  const prompt = `${SYSTEM_PROMPT}\n\nAnalyze this ${language} code for logic hallucinations and structural issues:\n\n\`\`\`${language}\n${truncatedCode}\n\`\`\``;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/complete', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+      },
+      body: JSON.stringify({
+        model: 'claude-2.1',
+        prompt: `\n\nHuman: ${prompt}\n\nAssistant:`,
+        max_tokens_to_sample: 2000,
+        temperature: 0.1,
+        stop_sequences: ['\n\nHuman:'],
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      console.warn('Claude API error:', err.error || response.statusText);
+      return [];
+    }
+
+    const data = await response.json();
+    const content = data.completion || data.output || '';
+
+    let parsed;
+    try {
+      parsed = JSON.parse(content);
+      if (Array.isArray(parsed)) return parsed;
+      const key = Object.keys(parsed).find(k => Array.isArray(parsed[k]));
+      return key ? parsed[key] : [];
+    } catch {
+      return [];
+    }
+  } catch (err) {
+    console.warn('Claude audit failed:', err.message);
+    return [];
+  }
+}
+
+// Unified entry point – chooses based on API key prefix
+async function runAIAudit(code, language, apiKey) {
+  if (isOpenAIKey(apiKey)) {
+    return runOpenAIAudit(code, language, apiKey);
+  }
+  if (isClaudeKey(apiKey)) {
+    return runClaudeAudit(code, language, apiKey);
+  }
+  return [];
+}
+
+// ── Simple chat helpers ──
+async function sendOpenAIChat(apiKey, text) {
+  if (!isOpenAIKey(apiKey)) throw new Error('Invalid OpenAI key');
+  const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: 'You are a helpful assistant.' },
+        { role: 'user', content: text },
+      ],
+      temperature: 0.7,
+      max_tokens: 300,
+    }),
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.error?.message || resp.statusText);
+  }
+  const data = await resp.json();
+  return data.choices?.[0]?.message?.content || '';
+}
+
+async function sendClaudeChat(apiKey, text) {
+  if (!isClaudeKey(apiKey)) throw new Error('Invalid Claude key');
+  const prompt = `\n\nHuman: ${text}\n\nAssistant:`;
+  const resp = await fetch('https://api.anthropic.com/v1/complete', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+    },
+    body: JSON.stringify({
+      model: 'claude-2.1',
+      prompt,
+      max_tokens_to_sample: 300,
+      temperature: 0.7,
+      stop_sequences: ['\n\nHuman:'],
+    }),
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.error || resp.statusText);
+  }
+  const data = await resp.json();
+  return data.completion || data.output || '';
+}
+
+async function sendAIChat(apiKey, text) {
+  if (isOpenAIKey(apiKey)) return sendOpenAIChat(apiKey, text);
+  if (isClaudeKey(apiKey)) return sendClaudeChat(apiKey, text);
+  throw new Error('Unsupported API key');
 }
