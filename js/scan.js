@@ -7,7 +7,7 @@
 const SAMPLES = {
   js: `// AI-Generated JavaScript – Deliberately Vulnerable
 const password = "admin123";
-const apiKey = "sk-proj-abc123secretkey456";
+const apiKey = "sk-proj-abc123secretkey456"; // or claude-yourkey
 const userId = req.params.id;
 
 // SQL Injection
@@ -45,7 +45,7 @@ import hashlib
 
 DEBUG = True
 password = "supersecret123"
-api_key = "sk-abc123xyz"
+api_key = "sk-abc123xyz"  # or claude-yourkey
 
 # Shell injection
 user_input = input("Enter filename: ")
@@ -231,11 +231,11 @@ analyzeBtn.addEventListener('click', async () => {
     const sastFindings = runSAST(code, language);
     setStep('step-sast', 'done');
 
-    // Step 2 – AI Audit
+    // Step 2 – AI Audit (OpenAI or Claude)
     setStep('step-ai', 'active');
     let aiFindings = [];
-    if (apiKey && apiKey.startsWith('sk-')) {
-      aiFindings = await runOpenAIAudit(code, language, apiKey);
+    if (apiKey) {
+      aiFindings = await runAIAudit(code, language, apiKey);
     } else {
       await delay(600); // simulate
     }
@@ -267,7 +267,9 @@ analyzeBtn.addEventListener('click', async () => {
       gradeColor: scoreData.gradeColor,
       gradeEmoji: scoreData.gradeEmoji,
       roadmap,
-      aiEnabled: !!(apiKey && apiKey.startsWith('sk-')),
+      aiEnabled: !!(
+        apiKey && (isOpenAIKey(apiKey) || isClaudeKey(apiKey))
+      ),
       lines: code.split('\n').length,
     };
 
