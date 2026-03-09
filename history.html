@@ -64,7 +64,39 @@
     </div>
 
     <script>
-        function getHistory() {
+        async function getHistory() {
+            try {
+                // Try to fetch from backend first
+                const response = await fetch('http://localhost:5000/api/scans');
+                if (response.ok) {
+                    const scans = await response.json();
+                    // Convert backend format to frontend format
+                    return scans.map(scan => ({
+                        id: scan.id,
+                        timestamp: scan.timestamp,
+                        language: scan.language,
+                        code: scan.code,
+                        findings: scan.vulnerabilities.map(v => ({
+                            type: v.type,
+                            severity: v.severity,
+                            description: v.description,
+                            line: v.line
+                        })),
+                        score: scan.score,
+                        // Add default values for missing fields
+                        breakdown: { critical: 0, high: 0, medium: 0, low: 0, info: 0 },
+                        grade: 'N/A',
+                        gradeColor: '#6b7280',
+                        gradeEmoji: '❓',
+                        roadmap: 'Database scans do not include roadmap data.',
+                        aiEnabled: false,
+                        lines: scan.code.split('\n').length
+                    }));
+                }
+            } catch (error) {
+                console.warn('Failed to fetch from database, using localStorage:', error);
+            }
+            // Fallback to localStorage
             try { return JSON.parse(localStorage.getItem('vg_history') || '[]'); } catch { return []; }
         }
 
@@ -75,8 +107,8 @@
             return '#ef4444';
         }
 
-        function render() {
-            const history = getHistory();
+        async function render() {
+            const history = await getHistory();
             const tbody = document.getElementById('history-tbody');
             const empty = document.getElementById('history-empty');
             const table = document.getElementById('history-table');
@@ -114,9 +146,14 @@
             window.location.href = 'results.html';
         }
 
-        document.getElementById('clear-btn').addEventListener('click', () => {
+        document.getElementById('clear-btn').addEventListener('click', async () => {
             if (confirm('Clear all scan history? This cannot be undone.')) {
                 localStorage.removeItem('vg_history');
+                try {
+                    await fetch('http://localhost:5000/api/scans', { method: 'DELETE' });
+                } catch (error) {
+                    console.warn('Failed to clear database:', error);
+                }
                 render();
             }
         });
