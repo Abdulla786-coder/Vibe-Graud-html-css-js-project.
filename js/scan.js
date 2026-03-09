@@ -279,6 +279,28 @@ analyzeBtn.addEventListener('click', async () => {
     if (history.length > 50) history.shift(); // cap at 50
     localStorage.setItem('vg_history', JSON.stringify(history));
 
+    // Send to backend database
+    try {
+      await fetch('http://localhost:5000/api/scans', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: result.code,
+          language: result.language,
+          vulnerabilities: result.findings.map(f => ({
+            type: f.type,
+            severity: f.severity,
+            description: f.description,
+            line: f.line
+          })),
+          score: result.score
+        })
+      });
+    } catch (dbError) {
+      console.warn('Failed to save to database:', dbError);
+      // Continue anyway, localStorage still works
+    }
+
     // Save as active result and navigate
     localStorage.setItem('vg_active_result', JSON.stringify(result));
     await delay(300);
