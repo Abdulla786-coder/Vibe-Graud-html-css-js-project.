@@ -111,6 +111,74 @@ async function hashPassword(plaintext) {
 const ENDPOINT = 'https://api.example.com/data';
 
 export { getUserById, displayMessage, generateToken, hashPassword };`,
+  simple: `// Simple JavaScript Sample
+const message = 'Hello, VibeGuard!';
+
+function greet(name) {
+  return \`Hello, ${name}!\`;
+}
+
+console.log(greet('Tester'));`,
+  html: `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>VibeGuard Demo</title>
+</head>
+<body>
+  <button id="greet-btn">Click me</button>
+  <script>
+    document.getElementById('greet-btn').addEventListener('click', () => {
+      alert('Hello from VibeGuard!');
+    });
+  </script>
+</body>
+</html>`,
+  css: `/* Simple CSS sample */
+:root {
+  --main-color: #4f46e5;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, sans-serif;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+button {
+  background: var(--main-color);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.75rem;
+}
+
+button:hover {
+  filter: brightness(1.05);
+}
+`,
+  ts: `// TypeScript sample
+interface User {
+  id: number;
+  name: string;
+}
+
+function getUserName(user: User): string {
+  return user.name;
+}
+
+const user: User = { id: 1, name: 'VibeGuard' };
+console.log(getUserName(user));`,
+  sql: `-- SQL sample
+SELECT id, username, email
+FROM users
+WHERE email LIKE '%@example.com';`,
+  bash: `#!/bin/bash
+echo "Starting VibeGuard sample"
+read -p "Enter your name: " name
+echo "Hello, $name"
+`,
 };
 
 // ── DOM References ──
@@ -127,29 +195,42 @@ const saveApiBtn = document.getElementById('save-api-btn');
 const apiStatus = document.getElementById('api-status');
 const editorBadge = document.getElementById('editor-lang-badge');
 
-// ── Restore saved API key ──
-const savedKey = localStorage.getItem('vg_api_key') || '';
-if (savedKey) {
-  apiKeyInput.value = savedKey;
-  updateApiStatus(savedKey);
+// ── Session-only API key support ──
+let sessionApiKey = '';
+let serverAIAvailable = false;
+
+async function refreshAIStatus() {
+  try {
+    const status = await checkAIStatus();
+    serverAIAvailable = status.available;
+  } catch {
+    serverAIAvailable = false;
+  }
+  updateApiStatus(sessionApiKey);
 }
 
 function updateApiStatus(key) {
-  if (key && key.startsWith('sk-')) {
-    apiStatus.textContent = '✅ API key saved — AI Logic Audit enabled';
+  if (key && key.length > 0) {
+    apiStatus.textContent = '✅ Session key loaded — AI logic audit will use this key for this session only';
+    apiStatus.className = 'api-status ok';
+  } else if (serverAIAvailable) {
+    apiStatus.textContent = '✅ Backend AI is available — AI audit will run on the server';
     apiStatus.className = 'api-status ok';
   } else {
-    apiStatus.textContent = '⚠ No key saved — SAST-only mode';
+    apiStatus.textContent = '⚠ No AI key configured — scan will use SAST-only mode';
     apiStatus.className = 'api-status missing';
   }
 }
 
 saveApiBtn.addEventListener('click', () => {
   const key = apiKeyInput.value.trim();
-  localStorage.setItem('vg_api_key', key);
+  sessionApiKey = key;
+  apiKeyInput.value = '';
   updateApiStatus(key);
-  showToast('✅ API key saved!');
+  showToast(key ? '✅ Session API key loaded. It is not stored locally.' : '✅ AI session key cleared.');
 });
+
+refreshAIStatus();
 
 // ── Language selector ──
 langSelect.addEventListener('change', () => {
@@ -167,7 +248,17 @@ fileInput.addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
   const ext = file.name.split('.').pop().toLowerCase();
-  const langMap = { js: 'javascript', ts: 'typescript', jsx: 'javascript', tsx: 'typescript', py: 'python' };
+  const langMap = {
+    js: 'javascript',
+    ts: 'typescript',
+    jsx: 'javascript',
+    tsx: 'typescript',
+    py: 'python',
+    html: 'html',
+    css: 'css',
+    sql: 'sql',
+    sh: 'bash',
+  };
   if (langMap[ext]) {
     langSelect.value = langMap[ext];
     editorBadge.textContent = langMap[ext];
@@ -186,8 +277,18 @@ function loadSample(type) {
   const sample = SAMPLES[type];
   if (!sample) return;
   codeInput.value = sample;
-  const langMap = { js: 'javascript', py: 'python', clean: 'javascript' };
-  const lang = langMap[type];
+  const langMap = {
+    js: 'javascript',
+    py: 'python',
+    clean: 'javascript',
+    simple: 'javascript',
+    html: 'html',
+    css: 'css',
+    ts: 'typescript',
+    sql: 'sql',
+    bash: 'bash',
+  };
+  const lang = langMap[type] || 'javascript';
   langSelect.value = lang;
   editorBadge.textContent = lang;
   lineCount.textContent = `${sample.split('\n').length} lines`;
@@ -215,7 +316,6 @@ analyzeBtn.addEventListener('click', async () => {
   }
 
   const language = langSelect.value;
-  const apiKey = localStorage.getItem('vg_api_key') || '';
 
   // UI → loading
   analyzeBtn.disabled = true;
@@ -231,13 +331,16 @@ analyzeBtn.addEventListener('click', async () => {
     const sastFindings = runSAST(code, language);
     setStep('step-sast', 'done');
 
-    // Step 2 – AI Audit (OpenAI or Claude)
+    // Step 2 – AI Audit (server-side proxy)
     setStep('step-ai', 'active');
     let aiFindings = [];
-    if (apiKey) {
-      aiFindings = await runAIAudit(code, language, apiKey);
-    } else {
-      await delay(600); // simulate
+    let aiEnabled = false;
+    try {
+      aiFindings = await runAIAudit(code, language, sessionApiKey);
+      aiEnabled = true;
+    } catch (err) {
+      console.warn('AI audit skipped:', err.message);
+      showToast(`⚠ AI audit unavailable: ${err.message}`, true);
     }
     setStep('step-ai', 'done');
 
@@ -267,9 +370,7 @@ analyzeBtn.addEventListener('click', async () => {
       gradeColor: scoreData.gradeColor,
       gradeEmoji: scoreData.gradeEmoji,
       roadmap,
-      aiEnabled: !!(
-        apiKey && (isOpenAIKey(apiKey) || isClaudeKey(apiKey))
-      ),
+      aiEnabled,
       lines: code.split('\n').length,
     };
 

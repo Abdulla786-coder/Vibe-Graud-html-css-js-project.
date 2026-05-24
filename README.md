@@ -47,7 +47,25 @@ The application can perform an AI-powered logic audit of your code using externa
 - **OpenAI** (`sk-` prefix) using GPT-4o/GPT-4o-mini models
 - **Anthropic Claude** (`claude-` prefix) via the Claude API
 
-Just store your key in localStorage under `vg_api_key` and the appropriate service will be used automatically during scans.
+For secure operation, the recommended setup is server-side only. Set your key in environment variables and do not commit it.
+
+### Backend AI configuration
+
+1. Create a `.env` file or export environment variables securely.
+2. Set one of these:
+   - `AI_API_KEY=sk-...` for OpenAI or `AI_API_KEY=claude-...` for Claude
+   - `OPENAI_API_KEY=sk-...`
+   - `CLAUDE_API_KEY=claude-...`
+3. Optional: specify provider explicitly:
+   - `AI_PROVIDER=openai`
+   - `AI_PROVIDER=claude`
+
+The backend proxy routes are:
+
+- `POST /api/audit` – runs a logic audit on submitted code
+- `POST /api/chat` – supports chatbot queries through the same server-side key
+
+If you want to use a temporary key in the browser, it is now session-only and never stored in localStorage.
 
 ## Chatbot
 

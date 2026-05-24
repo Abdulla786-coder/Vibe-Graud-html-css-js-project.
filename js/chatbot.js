@@ -33,14 +33,10 @@
       if (!text) return;
       appendMsg(text, 'user');
       inputEl.value = '';
-      const apiKey = localStorage.getItem('vg_api_key') || '';
-      if (!apiKey) {
-        appendMsg('🔒 No API key set. Go to Scanner and save one.', 'bot');
-        return;
-      }
       appendMsg('⏳ thinking…', 'bot');
       try {
-        const reply = await sendAIChat(apiKey, text);
+        //const reply = await sendAIChat('', text);
+        const reply = await sendAIChat(undefined, text);
         bodyEl.lastChild.textContent = reply || '(no response)';
       } catch (err) {
         bodyEl.lastChild.textContent = 'Error: ' + err.message;
