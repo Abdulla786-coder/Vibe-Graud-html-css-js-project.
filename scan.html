@@ -158,24 +158,15 @@ eval(userInput);"></textarea>
                     <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1rem;">Load a pre-made vulnerable
                         snippet to see VibeGuard in action.</p>
                     <div style="display:flex;flex-direction:column;gap:0.6rem;">
-                        <button class="export-btn" onclick="loadSample('js')" style="justify-content:center;">JavaScript
-                            Sample (Vulnerable)</button>
-                        <button class="export-btn" onclick="loadSample('py')" style="justify-content:center;">Python
-                            Sample (Vulnerable)</button>
-                        <button class="export-btn" onclick="loadSample('html')" style="justify-content:center;">HTML
-                            Sample</button>
-                        <button class="export-btn" onclick="loadSample('css')" style="justify-content:center;">CSS
-                            Sample</button>
-                        <button class="export-btn" onclick="loadSample('ts')" style="justify-content:center;">TypeScript
-                            Sample</button>
-                        <button class="export-btn" onclick="loadSample('sql')" style="justify-content:center;">SQL
-                            Sample</button>
-                        <button class="export-btn" onclick="loadSample('bash')" style="justify-content:center;">Bash
-                            Sample</button>
-                        <button class="export-btn" onclick="loadSample('clean')" style="justify-content:center;">Clean
-                            Code Sample</button>
-                        <button class="export-btn" onclick="loadSample('simple')" style="justify-content:center;">Simple
-                            JavaScript Sample</button>
+                        <button class="export-btn" data-sample="js" style="justify-content:center;">JavaScript Sample (Vulnerable)</button>
+                        <button class="export-btn" data-sample="py" style="justify-content:center;">Python Sample (Vulnerable)</button>
+                        <button class="export-btn" data-sample="html" style="justify-content:center;">HTML Sample</button>
+                        <button class="export-btn" data-sample="css" style="justify-content:center;">CSS Sample</button>
+                        <button class="export-btn" data-sample="ts" style="justify-content:center;">TypeScript Sample</button>
+                        <button class="export-btn" data-sample="sql" style="justify-content:center;">SQL Sample</button>
+                        <button class="export-btn" data-sample="bash" style="justify-content:center;">Bash Sample</button>
+                        <button class="export-btn" data-sample="clean" style="justify-content:center;">Clean Code Sample</button>
+                        <button class="export-btn" data-sample="simple" style="justify-content:center;">Simple JavaScript Sample</button>
                     </div>
                 </div>
             </div>

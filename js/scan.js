@@ -198,6 +198,160 @@ const editorBadge = document.getElementById('editor-lang-badge');
 // ── Session-only API key support ──
 let sessionApiKey = '';
 let serverAIAvailable = false;
+const SERVER_API = (typeof API_BASE_URL !== 'undefined' && API_BASE_URL) ? API_BASE_URL : 'http://localhost:5000';
+
+function safeQuery(id) {
+  return document.getElementById(id);
+}
+
+function initBindings() {
+  // Re-bind DOM elements if they weren't available at top-level
+  if (!window._vg_initialized) {
+    window._vg_initialized = true;
+    console.log('[VibeGuard] Initializing scanner bindings');
+    // Reassign common globals if null
+    if (!codeInput) codeInput = safeQuery('code-input');
+    if (!langSelect) langSelect = safeQuery('lang-select');
+    if (!fileInput) fileInput = safeQuery('file-input');
+    if (!lineCount) lineCount = safeQuery('line-count');
+    if (!analyzeBtn) analyzeBtn = safeQuery('analyze-btn');
+    if (!btnText) btnText = safeQuery('btn-text');
+    if (!btnIcon) btnIcon = safeQuery('btn-icon');
+    if (!scanProgress) scanProgress = safeQuery('scan-progress');
+    if (!apiKeyInput) apiKeyInput = safeQuery('api-key-input');
+    if (!saveApiBtn) saveApiBtn = safeQuery('save-api-btn');
+    if (!apiStatus) apiStatus = safeQuery('api-status');
+    if (!editorBadge) editorBadge = safeQuery('editor-lang-badge');
+
+    // Wire sample buttons immediately
+    document.querySelectorAll('[data-sample]').forEach(btn => {
+      btn.removeEventListener('click', sampleListener);
+      btn.addEventListener('click', sampleListener);
+    });
+
+    // analyze button binding is declared later in this file; no duplicate binding here
+  }
+}
+
+function sampleListener(e) { const t = e.currentTarget.dataset.sample; loadSample(t); }
+
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  setTimeout(initBindings, 0);
+} else {
+  document.addEventListener('DOMContentLoaded', initBindings);
+}
+
+function getLineNumber(code, regex) {
+  const match = regex.exec(code);
+  if (!match) return 1;
+  return code.substring(0, match.index).split('\n').length;
+}
+
+function buildFinding({ id, name, severity, owasp, description, fix, snippet, line, source }) {
+  return {
+    id: id || `LOCAL_AI_${Math.random().toString(36).slice(2, 10)}`,
+    name,
+    severity,
+    owasp: owasp || 'A06:2023 – Vulnerable and Outdated Components',
+    line: line || 1,
+    snippet: snippet || '',
+    description,
+    fix,
+    source: source || 'AI Fallback',
+  };
+}
+
+function generateLocalAIFindings(code, language) {
+  const findings = [];
+  const add = (finding) => findings.push(buildFinding(finding));
+  const lower = code.toLowerCase();
+
+  if (/\beval\s*\(|\bexec\s*\(|\bnew Function\s*\(/.test(code)) {
+    add({
+      name: 'Dynamic Code Execution',
+      severity: 'High',
+      owasp: 'A03:2021 – Injection',
+      description: 'This code uses dynamic execution patterns that can execute attacker-controlled text. Refactor to avoid eval/exec and use safe parsing or direct logic.',
+      fix: 'Replace eval()/exec()/new Function() with explicit functions, parser-based logic, or template rendering libraries that do not execute raw strings.',
+      snippet: code.match(/.*(?:eval\s*\(|exec\s*\(|new Function\s*\().*/)?.[0] || '',
+      line: getLineNumber(code, /\beval\s*\(|\bexec\s*\(|\bnew Function\s*\(/),
+    });
+  }
+
+  if (/\.innerHTML\s*=/.test(code)) {
+    add({
+      name: 'Unsafe DOM Injection',
+      severity: 'High',
+      owasp: 'A03:2021 – Injection',
+      description: 'Assigning to innerHTML can inject attacker-provided HTML or script into the page. This is a common XSS vector.',
+      fix: 'Use textContent for plain text, or sanitize values before assigning them to innerHTML.',
+      snippet: code.match(/.*\.innerHTML\s*=.*/)?.[0] || '',
+      line: getLineNumber(code, /\.innerHTML\s*=/),
+    });
+  }
+
+  if (/http:\/\//.test(code) && !/http:\/\/localhost|http:\/\/127\.0\.0\.1/.test(code)) {
+    add({
+      name: 'Insecure HTTP Usage',
+      severity: 'Medium',
+      owasp: 'A02:2021 – Cryptographic Failures',
+      description: 'This code connects over HTTP instead of HTTPS, exposing data to eavesdroppers and tampering.',
+      fix: 'Switch all external requests to HTTPS and enforce TLS in production.',
+      snippet: code.match(/.*http:\/\/.*$/m)?.[0] || '',
+      line: getLineNumber(code, /http:\/\//),
+    });
+  }
+
+  if (/\bMath\.random\s*\(|\brandom\.random\s*\(|\brandom\.randint\b/.test(code)) {
+    add({
+      name: 'Weak Random Number Usage',
+      severity: 'Medium',
+      owasp: 'A02:2021 – Cryptographic Failures',
+      description: 'Math.random() and similar functions are not safe for tokens, passwords, or cryptographic operations.',
+      fix: 'Use crypto.getRandomValues(), crypto.randomBytes(), or Python secrets for security-sensitive randomness.',
+      snippet: code.match(/.*(?:Math\.random\s*\(|random\.random\s*\(|random\.randint\b).*/)?.[0] || '',
+      line: getLineNumber(code, /Math\.random\s*\(|random\.random\s*\(|random\.randint\b/),
+    });
+  }
+
+  if (/\bconsole\.log\s*\(/.test(code)) {
+    add({
+      name: 'Debug Logging Left In Code',
+      severity: 'Low',
+      owasp: 'A09:2021 – Security Logging and Monitoring Failures',
+      description: 'console.log() calls can leak sensitive data in production and should be replaced with structured logging when appropriate.',
+      fix: 'Remove debug logs or wrap them behind a development-only logger with environment-based log levels.',
+      snippet: code.match(/.*console\.log\s*\(.*/)?.[0] || '',
+      line: getLineNumber(code, /console\.log\s*\()/),
+    });
+  }
+
+  if (/\bTODO\b|\bFIXME\b|\bHACK\b|\bBUG\b/.test(code)) {
+    add({
+      name: 'Unresolved TODO / FIXME Comments',
+      severity: 'Info',
+      owasp: 'A04:2021 – Insecure Design',
+      description: 'Comments like TODO or FIXME indicate incomplete security or stability work that should be resolved before release.',
+      fix: 'Review and resolve these notes, or move them into your issue tracker so production code stays clean.',
+      snippet: code.match(/.*\b(?:TODO|FIXME|HACK|BUG)\b.*/)?.[0] || '',
+      line: getLineNumber(code, /\bTODO\b|\bFIXME\b|\bHACK\b|\bBUG\b/),
+    });
+  }
+
+  if (findings.length === 0) {
+    add({
+      name: 'Code Review Passed',
+      severity: 'Info',
+      owasp: 'N/A',
+      description: 'No local heuristic issues were detected. Your code looks structurally sound based on the available patterns.',
+      fix: 'Continue using secure data handling, avoid dynamic execution, and keep dependencies up to date.',
+      snippet: '',
+      line: 1,
+    });
+  }
+
+  return findings;
+}
 
 async function refreshAIStatus() {
   try {
@@ -294,6 +448,16 @@ function loadSample(type) {
   lineCount.textContent = `${sample.split('\n').length} lines`;
 }
 
+// Wire sample buttons that use data-sample attributes
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('[data-sample]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const t = btn.dataset.sample;
+      loadSample(t);
+    });
+  });
+});
+
 // ── Step helpers ──
 function setStep(id, state) {
   const el = document.getElementById(id);
@@ -331,16 +495,19 @@ analyzeBtn.addEventListener('click', async () => {
     const sastFindings = runSAST(code, language);
     setStep('step-sast', 'done');
 
-    // Step 2 – AI Audit (server-side proxy)
+    // Step 2 – AI Audit (server-side proxy or local fallback)
     setStep('step-ai', 'active');
     let aiFindings = [];
     let aiEnabled = false;
+    let aiFallback = false;
     try {
       aiFindings = await runAIAudit(code, language, sessionApiKey);
       aiEnabled = true;
     } catch (err) {
-      console.warn('AI audit skipped:', err.message);
-      showToast(`⚠ AI audit unavailable: ${err.message}`, true);
+      console.warn('AI audit unavailable, falling back to local heuristic analysis:', err.message);
+      showToast(`⚠ AI audit unavailable: ${err.message}. Using local fallback.`, true);
+      aiFindings = generateLocalAIFindings(code, language);
+      aiFallback = true;
     }
     setStep('step-ai', 'done');
 
@@ -370,7 +537,8 @@ analyzeBtn.addEventListener('click', async () => {
       gradeColor: scoreData.gradeColor,
       gradeEmoji: scoreData.gradeEmoji,
       roadmap,
-      aiEnabled,
+      aiEnabled: aiEnabled && !aiFallback,
+      aiFallback,
       lines: code.split('\n').length,
     };
 
@@ -380,16 +548,16 @@ analyzeBtn.addEventListener('click', async () => {
     if (history.length > 50) history.shift(); // cap at 50
     localStorage.setItem('vg_history', JSON.stringify(history));
 
-    // Send to backend database
+    // Send to backend database (best-effort)
     try {
-      await fetch('http://localhost:5000/api/scans', {
+      await fetch(`${SERVER_API}/api/scans`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           code: result.code,
           language: result.language,
           vulnerabilities: result.findings.map(f => ({
-            type: f.type,
+            type: f.type || f.id || f.name,
             severity: f.severity,
             description: f.description,
             line: f.line

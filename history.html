@@ -63,11 +63,13 @@
         </div>
     </div>
 
+    <script src="js/openai-audit.js"></script>
     <script>
         async function getHistory() {
             try {
                 // Try to fetch from backend first
-                const response = await fetch('http://localhost:5000/api/scans');
+                const base = (typeof API_BASE_URL !== 'undefined' && API_BASE_URL) ? API_BASE_URL : 'http://localhost:5000';
+                const response = await fetch(base + '/api/scans');
                 if (response.ok) {
                     const scans = await response.json();
                     // Convert backend format to frontend format
@@ -141,8 +143,11 @@
             }).join('');
         }
 
-        function viewScan(idx) {
-            localStorage.setItem('vg_active_result', JSON.stringify(getHistory()[idx]));
+        async function viewScan(idx) {
+            const history = await getHistory();
+            const scan = history[idx];
+            if (!scan) return;
+            localStorage.setItem('vg_active_result', JSON.stringify(scan));
             window.location.href = 'results.html';
         }
 
@@ -150,7 +155,8 @@
             if (confirm('Clear all scan history? This cannot be undone.')) {
                 localStorage.removeItem('vg_history');
                 try {
-                    await fetch('http://localhost:5000/api/scans', { method: 'DELETE' });
+                    const base = (typeof API_BASE_URL !== 'undefined' && API_BASE_URL) ? API_BASE_URL : 'http://localhost:5000';
+                    await fetch(base + '/api/scans', { method: 'DELETE' });
                 } catch (error) {
                     console.warn('Failed to clear database:', error);
                 }
